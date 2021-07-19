@@ -2,7 +2,7 @@
   "name": "gatsby-site-search",
   "private": true,
   "description": "Fast JS Search on Gatsby: Roll Your Own Site Search",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "license": "BSD-3-Clause",
   "keywords": [
     "gatsby",
