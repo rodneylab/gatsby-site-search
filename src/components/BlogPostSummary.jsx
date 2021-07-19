@@ -1,17 +1,24 @@
-import React, { useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import { graphql, Link, navigate } from 'gatsby';
 import PropTypes from 'prop-types';
+import React, { useEffect, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { H_ELLIPSIS_ENTITY } from '../constants/entities';
-
+import { getSimilarWords } from '../utilities/search';
 import { container, content } from './BlogPostSummary.module.scss';
 
 const BlogPostSummary = ({
   frontmatter: { datePublished, postTitle, seoMetaDescription },
+  searchTerm,
   slug,
 }) => {
   const containerNode = useRef();
   const titleNode = useRef();
+
+  const [similarWords, setSimilarWords] = useState([]);
+
+  const postLink = () => `/${slug}?s=${searchTerm}`;
+
   useEffect(() => {
     if (containerNode.current) {
       // deliberately set style with javascript and not CSS for accessibility reasons
@@ -19,7 +26,7 @@ const BlogPostSummary = ({
     }
     const listener = (event) => {
       if (containerNode.current && !titleNode.current.contains(event.target)) {
-        navigate(`/${slug}`);
+        navigate(postLink());
       }
     };
     containerNode.current.addEventListener('mousedown', listener);
@@ -28,7 +35,44 @@ const BlogPostSummary = ({
         containerNode.current.removeEventListener('mousedown', listener);
       }
     };
-  }, [containerNode, titleNode]);
+  }, [containerNode, titleNode, searchTerm]);
+
+  useEffect(() => {
+    setSimilarWords(getSimilarWords(searchTerm, seoMetaDescription));
+  }, [searchTerm]);
+
+  const highlightSearchStemCommonWords = (text) => {
+    if (similarWords.length > 0) {
+      const parts = text.split(new RegExp(`(${similarWords.join('|')})`, 'gi'));
+      return (
+        <p>
+          {parts.map((part) => {
+            if (part !== '') {
+              if (similarWords.includes(part.toLowerCase())) {
+                return <mark key={uuidv4()}>{part}</mark>;
+              }
+              return <span key={uuidv4()}>{part}</span>;
+            }
+            return null;
+          })}
+        </p>
+      );
+    }
+    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
+    return (
+      <p>
+        {parts.map((part) => (
+          <span key={uuidv4()}>
+            {part.toLowerCase() === searchTerm.toLowerCase() ? <mark>{part}</mark> : part}
+          </span>
+        ))}
+      </p>
+    );
+  };
+
+  const formattedSeoMetaDescription = () => (
+    <p>{highlightSearchStemCommonWords(seoMetaDescription)}</p>
+  );
 
   const date = dayjs(datePublished);
   const idString = `blog-post-summary-${slug.slice(0, -1)}`;
@@ -40,13 +84,13 @@ const BlogPostSummary = ({
           <Link
             aria-label={`Open ${postTitle} blog post`}
             aria-describedby={idString}
-            to={`/${slug}`}
+            to={postLink()}
           >
             {postTitle}
           </Link>
         </h3>
         <p>{`${date.format('D')} ${date.format('MMM')}`}</p>
-        <p>{seoMetaDescription}</p>
+        <p>{formattedSeoMetaDescription()}</p>
         <span aria-hidden id={idString}>
           Read more {H_ELLIPSIS_ENTITY}
         </span>
@@ -55,12 +99,17 @@ const BlogPostSummary = ({
   );
 };
 
+BlogPostSummary.defaultProps = {
+  searchTerm: '',
+};
+
 BlogPostSummary.propTypes = {
   frontmatter: PropTypes.shape({
     datePublished: PropTypes.string,
     postTitle: PropTypes.string,
     seoMetaDescription: PropTypes.string,
   }).isRequired,
+  searchTerm: PropTypes.string,
   slug: PropTypes.string.isRequired,
 };
 

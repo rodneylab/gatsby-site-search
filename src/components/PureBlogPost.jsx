@@ -1,24 +1,80 @@
-import React from 'react';
-import { Helmet } from 'react-helmet';
-import { Link } from 'gatsby';
 import { MDXProvider } from '@mdx-js/react';
+import { Link } from 'gatsby';
 import PropTypes from 'prop-types';
-
+import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { v4 as uuidv4 } from 'uuid';
+import { getSimilarWords } from '../utilities/search';
+import { isBrowser } from '../utilities/utilities';
 import BannerImage from './BannerImage';
-import { ExternalLink, TwitterMessageLink } from './Link';
 import { PureLayout as Layout } from './Layout';
+import { ExternalLink, TwitterMessageLink } from './Link';
 import { PureSEO as SEO } from './SEO';
 
-const shortcodes = {
-  ExternalLink,
-  Link,
-  TwitterMessageLink,
-};
-
 const PureBlogPost = ({ children, data }) => {
-  const { frontmatter, slug } = data.post;
+  const [similarWords, setSimilarWords] = useState([]);
+  const { frontmatter, rawBody, slug } = data.post;
   const { bannerImage, featuredImageAlt, seoMetaDescription, postTitle } = frontmatter;
   const { siteUrl } = data.site.siteMetadata;
+
+  let searchTerm = '';
+  if (isBrowser) {
+    const searchParam = new URLSearchParams(window.location.search.substring(1)).get('s');
+    if (searchParam !== null) {
+      searchTerm = searchParam;
+    }
+  }
+
+  useEffect(() => {
+    setSimilarWords(getSimilarWords(searchTerm, rawBody));
+  }, [searchTerm]);
+
+  const highlightWords = (childrenProp) => {
+    const result = [];
+    React.Children.forEach(childrenProp, (child) => {
+      if (child.props && child.props.children) {
+        const newChild = React.cloneElement(child, {
+          children: highlightWords(child.props.children),
+          key: uuidv4(),
+        });
+        result.push(newChild);
+      } else if (!child.props) {
+        const parts = child.split(new RegExp(`(${similarWords.join('|')})`, 'gi'));
+        const highlightedChild = parts.map((part) => {
+          if (part !== '') {
+            if (similarWords.includes(part.toLowerCase())) {
+              return (
+                <mark className="highlight" key={uuidv4()}>
+                  {part}
+                </mark>
+              );
+            }
+            return part;
+          }
+          return null;
+        });
+        result.push(highlightedChild);
+      } else {
+        result.push(child);
+      }
+    });
+    return result;
+  };
+
+  const shortcodes = {
+    ExternalLink,
+    Link,
+    TwitterMessageLink,
+    wrapper:
+      searchTerm === '' ? null : ({ children: mdxChildren }) => <>{highlightWords(mdxChildren)}</>,
+  };
+
+  useEffect(() => {
+    const highlights = document.querySelectorAll('.highlight');
+    if (highlights[0]) {
+      highlights[0].scrollIntoView(true);
+    }
+  }, [searchTerm, shortcodes]);
 
   return (
     <>
@@ -47,6 +103,7 @@ PureBlogPost.propTypes = {
       }),
     }),
     post: PropTypes.shape({
+      rawBody: PropTypes.string,
       slug: PropTypes.string,
       frontmatter: PropTypes.shape({
         postTitle: PropTypes.string,

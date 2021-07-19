@@ -68,7 +68,8 @@
     "replace-in-file": "^6.2.0",
     "sass": "^1.35.2",
     "stemmer": "^2.0.0",
-    "strip-markdown": "^4.0.0"
+    "strip-markdown": "^4.0.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^12.1.4",

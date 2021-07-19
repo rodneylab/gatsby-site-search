@@ -176,7 +176,11 @@ const Search = ({ data, posts }) => {
                   const frontmatter = getPostFrontmatter(value);
                   return (
                     <article aria-posinset={index} aria-setsize="-1" key={id}>
-                      <BlogPostSummary frontmatter={frontmatter} slug={value.slug.slice(1)} />
+                      <BlogPostSummary
+                        frontmatter={frontmatter}
+                        searchTerm={searchQuery.toLowerCase()}
+                        slug={value.slug.slice(1)}
+                      />
                     </article>
                   );
                 })}

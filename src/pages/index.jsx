@@ -10,6 +10,7 @@ import { isBrowser } from '../utilities/utilities';
 
 export default function Home({ data, pageContext }) {
   const { allPosts } = pageContext.postData;
+
   if (isBrowser) {
     const searchParam = new URLSearchParams(window.location.search.substring(1)).get('s');
     if (searchParam !== null) {
@@ -50,6 +51,10 @@ export default function Home({ data, pageContext }) {
   );
 }
 
+Home.defaultProps = {
+  pageContext: {},
+};
+
 Home.propTypes = {
   data: PropTypes.shape({
     site: PropTypes.shape({
@@ -68,7 +73,7 @@ Home.propTypes = {
         }),
       ),
     }),
-  }).isRequired,
+  }),
 };
 
 export const query = graphql`
